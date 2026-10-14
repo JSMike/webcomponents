@@ -49,7 +49,7 @@ function processEvent(ts, event, classNode, moduleDoc) {
 	const result = {
 		name,
 		_ui5privacy: "private",
-		type: { text: "CustomEvent" }
+		type: { text: "CustomEvent", references: [{ name: "CustomEvent", package: "global:" }] }
 	};
 
 	const comment = event.getFullText?.().match(jsDocRegExp)?.[0];
@@ -91,7 +91,7 @@ function processEvent(ts, event, classNode, moduleDoc) {
 	result._ui5Bubbles = eventBubbles !== undefined ? eventBubbles : false;
 
 	if (native) {
-		result.type = { text: "Event" };
+		result.type = { text: "Event", references: [{ name: "Event", package: "global:" }] };
 	}
 
 	if (privacy) {
@@ -160,6 +160,13 @@ function processEvent(ts, event, classNode, moduleDoc) {
 		}
 
 		result._ui5parameters = getParams(ts, eventDetails, commentParams, classNode, moduleDoc);
+	}
+
+	if (result.type.text.startsWith("CustomEvent<")) {
+		result.type.references = [
+			{ name: "CustomEvent", package: "global:" },
+			...(result.type.references || []),
+		];
 	}
 
 	return result;
