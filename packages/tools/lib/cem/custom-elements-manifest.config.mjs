@@ -1,5 +1,6 @@
 import { parse } from "comment-parser";
 import processEvent from "./event.mjs";
+import { addManifestTypeReferenceSpans } from "./type-references.mjs";
 import path from "path";
 import fs from 'fs';
 import {
@@ -520,7 +521,8 @@ export default {
 						break;
 				}
 			},
-			moduleLinkPhase({ moduleDoc }) {
+			moduleLinkPhase({ ts, moduleDoc }) {
+				addManifestTypeReferenceSpans(ts, moduleDoc);
 				moduleDoc.path = moduleDoc.path?.replace(/^src/, "dist").replace(/\.tsx?$/, ".js");
 
 				moduleDoc.exports = moduleDoc.exports.
@@ -533,7 +535,11 @@ export default {
 						e.declaration.module = e.declaration.module.replace(/^src/, "dist").replace(/\.tsx?$/, ".js");
 					}
 
-					if (classNode?.customElement && classNode.tagName && e.kind !== "custom-element-definition") {
+					if (classNode?.customElement && classNode.tagName && e.kind !== "custom-element-definition"
+						&& !moduleDoc.exports.some(existing => existing.kind === "custom-element-definition"
+							&& existing.name === classNode.tagName
+							&& existing.declaration?.name === e.declaration.name
+							&& existing.declaration?.module === e.declaration.module)) {
 						moduleDoc.exports.push({
 							kind: "custom-element-definition",
 							name: classNode.tagName,
